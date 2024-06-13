@@ -10,7 +10,7 @@ import (
 
 const (
 	TOTAL_MESSAGES = 100
-	MAX_RETRIES    = 100    
+	MAX_RETRIES    = 100
 	TIMEOUT        = 1 * time.Second
 )
 
