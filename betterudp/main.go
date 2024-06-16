@@ -17,7 +17,7 @@ import (
 	"gonum.org/v1/plot/vg"
 )
 
-const CSV_FILE_PATH = "execution_times.csv"
+const CSV_FILE_PATH = "/home/mendes/Documents/Github/betterUDP/execution_times.csv"
 
 var mutex sync.Mutex
 
@@ -48,13 +48,16 @@ func main() {
 	fmt.Printf("Tempo total de execução do servidor: %v\n", serverTotalTime)
 	fmt.Printf("Tempo total de execução do cliente: %v\n", clientTotalTime)
 
-	// Salvar tempos de execução no CSV
-	err := LogElapsedTime(serverTotalTime.Milliseconds(), clientTotalTime.Milliseconds())
-	if err != nil {
-		fmt.Println("Erro ao salvar tempos de execução no CSV:", err)
-	}
+	// // Salvar tempos de execução no CSV
+	// err := LogElapsedTime(serverTotalTime.Milliseconds(), clientTotalTime.Milliseconds())
+	// if err != nil {
+	// 	fmt.Println("Erro ao salvar tempos de execução no CSV:", err)
+	// }
 
-	GenerateExecutionTimeChart(CSV_FILE_PATH, "execution_times.png")
+	err := GenerateExecutionTimeChart("/home/mendes/Documents/Github/betterUDP/execution_times.csv", "output.png")
+	if err != nil {
+		fmt.Println("Erro:", err)
+	}
 }
 
 func LogElapsedTime(serverTimeMs, clientTimeMs int64) error {
@@ -82,7 +85,6 @@ func LogElapsedTime(serverTimeMs, clientTimeMs int64) error {
 	return nil
 }
 
-
 func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 	// Abrir o arquivo CSV
 	file, err := os.Open(csvFilePath)
@@ -98,16 +100,20 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 		return fmt.Errorf("erro ao ler arquivo CSV: %w", err)
 	}
 
-	// Extrair tempos de execução do servidor e do cliente
+	// Listas para armazenar os tempos de execução
 	var serverTimes []float64
 	var clientTimes []float64
+	var serverTCPTimes []float64
+	var clientTCPTimes []float64
 
-	for i, record := range records {
-		if i == 0 {
-			// Ignorar o cabeçalho
-			continue
+	// Iterar sobre os registros do CSV
+	for _, record := range records {
+		// Verificar se a linha possui exatamente 4 valores
+		if len(record) != 4 {
+			continue // Ignorar esta linha se não tiver exatamente 4 valores
 		}
 
+		// Converter e armazenar os tempos de execução
 		serverTime, err := strconv.ParseFloat(record[0], 64)
 		if err != nil {
 			return fmt.Errorf("erro ao converter tempo de execução do servidor: %w", err)
@@ -116,23 +122,40 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 		if err != nil {
 			return fmt.Errorf("erro ao converter tempo de execução do cliente: %w", err)
 		}
+		serverTCPTime, err := strconv.ParseFloat(record[2], 64)
+		if err != nil {
+			return fmt.Errorf("erro ao converter tempo de execução do servidor TCP: %w", err)
+		}
+		clientTCPTime, err := strconv.ParseFloat(record[3], 64)
+		if err != nil {
+			return fmt.Errorf("erro ao converter tempo de execução do cliente TCP: %w", err)
+		}
 
+		// Adicionar os tempos à lista correspondente
 		serverTimes = append(serverTimes, serverTime)
 		clientTimes = append(clientTimes, clientTime)
+		serverTCPTimes = append(serverTCPTimes, serverTCPTime)
+		clientTCPTimes = append(clientTCPTimes, clientTCPTime)
+	}
+
+	// Verificar se há dados suficientes para gerar o gráfico
+	if len(serverTimes) == 0 || len(clientTimes) == 0 || len(serverTCPTimes) == 0 || len(clientTCPTimes) == 0 {
+		return fmt.Errorf("não há registros válidos com 4 valores no arquivo CSV")
 	}
 
 	// Calcular média dos tempos de execução
 	avgServerTime := calculateAverage(serverTimes)
 	avgClientTime := calculateAverage(clientTimes)
+	avgServerTCPTime := calculateAverage(serverTCPTimes)
+	avgClientTCPTime := calculateAverage(clientTCPTimes)
 
 	fmt.Printf("Média de tempo de execução do servidor: %.2f ms\n", avgServerTime)
 	fmt.Printf("Média de tempo de execução do cliente: %.2f ms\n", avgClientTime)
+	fmt.Printf("Média de tempo de execução do servidor TCP: %.2f ms\n", avgServerTCPTime)
+	fmt.Printf("Média de tempo de execução do cliente TCP: %.2f ms\n", avgClientTCPTime)
 
 	// Criar plot
-	p:= plot.New()
-	if err != nil {
-		return fmt.Errorf("erro ao criar plot: %w", err)
-	}
+	p := plot.New()
 
 	// Definir título e rótulos dos eixos
 	p.Title.Text = "Tempo Médio de Execução"
@@ -142,16 +165,26 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 	// Criar pontos para plotar
 	pointsServer := make(plotter.XYs, len(serverTimes))
 	pointsClient := make(plotter.XYs, len(clientTimes))
+	pointsServerTCP := make(plotter.XYs, len(serverTCPTimes))
+	pointsClientTCP := make(plotter.XYs, len(clientTCPTimes))
 
 	for i := range pointsServer {
 		pointsServer[i].X = float64(i + 1)
 		pointsServer[i].Y = serverTimes[i]
 		pointsClient[i].X = float64(i + 1)
 		pointsClient[i].Y = clientTimes[i]
+		pointsServerTCP[i].X = float64(i + 1)
+		pointsServerTCP[i].Y = serverTCPTimes[i]
+		pointsClientTCP[i].X = float64(i + 1)
+		pointsClientTCP[i].Y = clientTCPTimes[i]
 	}
 
 	// Adicionar pontos ao plot
-	err = plotutil.AddLinePoints(p, "Servidor", pointsServer, "Cliente", pointsClient)
+	err = plotutil.AddLinePoints(p,
+		"Servidor", pointsServer,
+		"Cliente", pointsClient,
+		"Servidor TCP", pointsServerTCP,
+		"Cliente TCP", pointsClientTCP)
 	if err != nil {
 		return fmt.Errorf("erro ao adicionar pontos ao plot: %w", err)
 	}

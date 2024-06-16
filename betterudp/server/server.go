@@ -11,9 +11,6 @@ import (
 	"github.com/fatih/color"
 )
 
-const (
-	WINDOW_SIZE = 1
-)
 
 var (
 	nextSeqNum            int
@@ -27,6 +24,7 @@ var (
 	CONGESTION_DELAY      = 1000 * time.Millisecond     // Initial congestion delay time
 	CSV_FILE_PATH         = "./times.csv"
 	startTime, endTime    time.Time
+	WINDOW_SIZE           = 2
 )
 
 func Server(PORT string) {
@@ -124,15 +122,20 @@ func AdjustCongestionParameters() {
 		if packetRate > 20 {
 			CONGESTION_THRESHOLD = 100
 			CONGESTION_DELAY = 200 * time.Millisecond
+			WINDOW_SIZE = 10
+
 		} else if packetRate > 10 {
 			CONGESTION_THRESHOLD = 75
 			CONGESTION_DELAY = 400 * time.Millisecond
+			WINDOW_SIZE = 15
 		} else if packetRate > 5 {
 			CONGESTION_THRESHOLD = 50
 			CONGESTION_DELAY = 600 * time.Millisecond
+			WINDOW_SIZE = 20
 		} else {
 			CONGESTION_THRESHOLD = 25
 			CONGESTION_DELAY = 1000 * time.Millisecond
+			WINDOW_SIZE = 50
 		}
 
 		color.Magenta("Adjusted CONGESTION_THRESHOLD to %d and CONGESTION_DELAY to %v based on packet rate: %.2f packets/sec\n", CONGESTION_THRESHOLD, CONGESTION_DELAY, packetRate)

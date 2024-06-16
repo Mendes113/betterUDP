@@ -29,19 +29,20 @@ func main() {
 	}
 	defer conn.Close()
 
-	// Start measuring time for sending message
+	// Start measuring time for sending messages
 	sendStart := time.Now()
-
-	// Send a message to the server
-	_, err = conn.Write([]byte("Hello UDP Server\n"))
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	for i := 1; i <= 100; i++ {
+		// Send a message to the server
+		_, err = conn.Write([]byte("Hello UDP Server\n"))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	sendElapsed := time.Since(sendStart) // Calculate time taken for sending
 
-	fmt.Println("Message sent to UDP server")
+	fmt.Println("Messages sent to UDP server")
 
 	// Start measuring time for receiving response
 	recvStart := time.Now()
@@ -58,7 +59,11 @@ func main() {
 	// Print the data read from the connection to the terminal
 	fmt.Print("> ", string(data))
 
-	// Print time spent for sending and receiving
+	// Calculate total time spent
+	totalElapsed := sendElapsed + recvElapsed
+
+	// Print time spent for sending, receiving, and total time
 	fmt.Printf("Time spent sending: %v\n", sendElapsed)
 	fmt.Printf("Time spent receiving: %v\n", recvElapsed)
+	fmt.Printf("Total time spent: %v\n", totalElapsed)
 }
