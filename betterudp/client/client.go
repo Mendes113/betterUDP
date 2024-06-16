@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"time"
+    "github.com/fatih/color"
 )
 
 const (
@@ -12,6 +13,7 @@ const (
 	MAX_RETRIES    = 1000
 	TIMEOUT        = 1 * time.Second
 )
+
 func sendMessage(c *net.UDPConn, message string, seqNum int) error {
     retries := 0
     for {
@@ -25,7 +27,7 @@ func sendMessage(c *net.UDPConn, message string, seqNum int) error {
         // Calculate time taken to send the message
         sendElapsed := time.Since(now)
 		fmt.Printf("Sent message '%s', took %v\n", message, sendElapsed)
-        // Wait for ACK
+        color.Cyan("Sent message '%s', took %v\n", message, sendElapsed)
         ackBuf := make([]byte, 1024)
         c.SetReadDeadline(time.Now().Add(TIMEOUT))
         n, _, err := c.ReadFromUDP(ackBuf)

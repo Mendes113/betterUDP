@@ -2,11 +2,21 @@ package main
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"strconv"
+	"sync"
+	"syscall"
 	"time"
 )
+
+var mutex sync.Mutex
+var CSV_FILE_PATH = "execution_times.csv"
+var messageCount = 0
+const MAX_MESSAGES = 1000
 
 func main() {
 	if len(os.Args) == 1 {
@@ -32,36 +42,82 @@ func main() {
 
 	fmt.Printf("TCP server started and listening on %s\n", tcpAddr.String())
 
+	// Channel to receive OS signals (e.g., SIGINT, SIGTERM)
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	// Handle OS signals in a separate Goroutine
+	go func() {
+		<-signalCh
+		fmt.Println("\nReceived interrupt signal. Shutting down gracefully...")
+		listener.Close()
+	}()
+
+	// Accept connections and handle them
 	for {
-		// Accept new connections
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
-		// Handle new connections in a Goroutine for concurrency
-		go handleConnection(conn)
-	}
 
-	elapsed := time.Since(start) // Calculate total elapsed time
-	fmt.Printf("Total execution time: %v\n", elapsed)
+		// Increment message count
+		messageCount++
+
+		// Handle new connections in a Goroutine for concurrency
+		go func() {
+			defer conn.Close()
+
+			for {
+				data, err := bufio.NewReader(conn).ReadString('\n')
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				fmt.Print("> ", string(data))
+
+				conn.Write([]byte("Hello TCP Client\n"))
+
+				if messageCount >= MAX_MESSAGES {
+					// Calculate total elapsed time
+					elapsed := time.Since(start)
+					fmt.Printf("Received all 1000 messages. Total execution time: %v\n", elapsed)
+
+					// Log the elapsed time in CSV
+					err := LogElapsedTime(elapsed.Milliseconds(), 0) // Client time is not relevant here
+					if err != nil {
+						fmt.Println("Error logging elapsed time:", err)
+					}
+
+					// Close listener to stop accepting new connections
+					listener.Close()
+					return
+				}
+			}
+		}()
+	}
 }
 
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-
-	for {
-		// Read from the connection until a new line is received
-		data, err := bufio.NewReader(conn).ReadString('\n')
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		// Print the data read from the connection to the terminal
-		fmt.Print("> ", string(data))
-
-		// Write back the same message to the client
-		conn.Write([]byte("Hello TCP Client\n"))
+func LogElapsedTime(serverTimeMs, clientTimeMs int64) error {
+	// Open CSV file in append mode
+	file, err := os.OpenFile(CSV_FILE_PATH, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening CSV file: %w", err)
 	}
+	defer file.Close()
+
+	// Create CSV writer
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write execution times to CSV
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if err := writer.Write([]string{strconv.FormatInt(serverTimeMs, 10), strconv.FormatInt(clientTimeMs, 10)}); err != nil {
+		return fmt.Errorf("error writing execution times to CSV: %w", err)
+	}
+
+	return nil
 }

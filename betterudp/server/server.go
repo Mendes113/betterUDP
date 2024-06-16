@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 const (
@@ -14,18 +16,21 @@ const (
 )
 
 var (
-	nextSeqNum        int
-	baseSeqNum        int
-	congestion        bool
-	receiveQueue      []string
-	mutex             sync.Mutex
-	packetRate        float64
-	lastPacketTime    time.Time
-	CONGESTION_THRESHOLD = 750        // Inicialmente, o limite de mensagens na fila para ativar congestionamento
-	CONGESTION_DELAY      = 1000 * time.Millisecond // Inicialmente, o tempo de atraso para simular congestionamento
+	nextSeqNum            int
+	baseSeqNum            int
+	congestion            bool
+	receiveQueue          []string
+	mutex                 sync.Mutex
+	packetRate            float64
+	lastPacketTime        time.Time
+	CONGESTION_THRESHOLD  = 1000                         // Initial congestion queue limit
+	CONGESTION_DELAY      = 1000 * time.Millisecond     // Initial congestion delay time
+	CSV_FILE_PATH         = "./times.csv"
+	startTime, endTime    time.Time
 )
 
 func Server(PORT string) {
+	startTime = time.Now()
 	
 
 	s, err := net.ResolveUDPAddr("udp4", PORT)
@@ -56,72 +61,66 @@ func Server(PORT string) {
 		go HandlePacket(connection, buffer[:n], addr)
 	}
 }
+
 func HandlePacket(connection *net.UDPConn, packet []byte, addr *net.UDPAddr) {
-    now := time.Now()
-    elapsed := now.Sub(lastPacketTime)
-    lastPacketTime = now
 
-    // Convert elapsed time to milliseconds
-    elapsedMs := elapsed.Milliseconds()
 
-    // Atualiza a taxa de chegada de pacotes (simples média móvel)
-    packetRate = (packetRate + (1 / elapsed.Seconds())) / 2
+	
 
-    msg := strings.TrimSpace(string(packet))
-    fmt.Printf("Received: %s\n", msg)
+	
 
-    if msg == "STOP" {
-        fmt.Println("Exiting UDP server!")
-        return
-    }
+	msg := strings.TrimSpace(string(packet))
 
-    // Simulating congestion
-    if congestion {
-        time.Sleep(CONGESTION_DELAY) // Use the dynamically adjusted congestion delay
-        congestion = false
-    }
+	color.Magenta("Received: %s\n", msg)
+	if msg == "STOP" {
+		fmt.Println("Exiting UDP server!")
+		
+		return
+	}
 
-    mutex.Lock()
-    defer mutex.Unlock()
+	// Simulating congestion
+	if congestion {
+		time.Sleep(CONGESTION_DELAY) // Use the dynamically adjusted congestion delay
+		congestion = false
+	}
 
-    seqNum, err := strconv.Atoi(strings.Split(msg, " ")[1])
-    if err != nil {
-        fmt.Println("Invalid message format")
-        return
-    }
+	mutex.Lock()
+	defer mutex.Unlock()
 
-    if seqNum == baseSeqNum+1 {
-        receiveQueue = append(receiveQueue, msg)
-        baseSeqNum++
-        expectedSeqNum := strconv.Itoa(baseSeqNum)
-        ack := []byte(expectedSeqNum)
-        _, err = connection.WriteToUDP(ack, addr)
-        if err != nil {
-            fmt.Println(err)
-            return
-        }
-        fmt.Printf("Sent ACK: %s\n", expectedSeqNum)
-    } else if seqNum > baseSeqNum {
-        fmt.Println("Message out of order, dropping:", msg)
-    }
+	seqNum, err := strconv.Atoi(strings.Split(msg, " ")[1])
+	if err != nil {
+		fmt.Println("Invalid message format")
+		return
+	}
 
-    // Simulate random congestion
-    if len(receiveQueue) > CONGESTION_THRESHOLD {
-        fmt.Println("Congestion detected! Slowing down...")
-        congestion = true
-    }
+	if seqNum == baseSeqNum+1 {
+		receiveQueue = append(receiveQueue, msg)
+		baseSeqNum++
+		expectedSeqNum := strconv.Itoa(baseSeqNum)
+		ack := []byte(expectedSeqNum)
+		_, err = connection.WriteToUDP(ack, addr)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("Sent ACK: %s\n", expectedSeqNum)
+	} else if seqNum > baseSeqNum {
+		fmt.Println("Message out of order, dropping:", msg)
+	}
 
-    // Print elapsed time in milliseconds
-    fmt.Printf("Elapsed time (ms): %d\n", elapsedMs)
+	// Simulate random congestion
+	if len(receiveQueue) > CONGESTION_THRESHOLD {
+		fmt.Println("Congestion detected! Slowing down...")
+		congestion = true
+	}
 }
-
 
 func AdjustCongestionParameters() {
 	for {
-		time.Sleep(1 * time.Second) // Ajusta os parâmetros a cada 5 segundos
+		time.Sleep(1 * time.Second) // Adjust parameters every 5 seconds
 		mutex.Lock()
 
-		// Ajusta o limiar de congestionamento com base na taxa de chegada de pacotes
+		// Adjust congestion threshold based on packet arrival rate
 		if packetRate > 20 {
 			CONGESTION_THRESHOLD = 100
 			CONGESTION_DELAY = 200 * time.Millisecond
@@ -136,7 +135,9 @@ func AdjustCongestionParameters() {
 			CONGESTION_DELAY = 1000 * time.Millisecond
 		}
 
-		fmt.Printf("Adjusted CONGESTION_THRESHOLD to %d and CONGESTION_DELAY to %v based on packet rate: %.2f packets/sec\n", CONGESTION_THRESHOLD, CONGESTION_DELAY, packetRate)
+		color.Magenta("Adjusted CONGESTION_THRESHOLD to %d and CONGESTION_DELAY to %v based on packet rate: %.2f packets/sec\n", CONGESTION_THRESHOLD, CONGESTION_DELAY, packetRate)
 		mutex.Unlock()
 	}
 }
+
+
