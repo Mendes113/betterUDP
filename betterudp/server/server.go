@@ -56,59 +56,65 @@ func Server(PORT string) {
 		go HandlePacket(connection, buffer[:n], addr)
 	}
 }
-
 func HandlePacket(connection *net.UDPConn, packet []byte, addr *net.UDPAddr) {
-	now := time.Now()
-	elapsed := now.Sub(lastPacketTime).Seconds()
-	lastPacketTime = now
+    now := time.Now()
+    elapsed := now.Sub(lastPacketTime)
+    lastPacketTime = now
 
-	// Atualiza a taxa de chegada de pacotes (simples média móvel)
-	packetRate = (packetRate + (1 / elapsed)) / 2
+    // Convert elapsed time to milliseconds
+    elapsedMs := elapsed.Milliseconds()
 
-	msg := strings.TrimSpace(string(packet))
-	fmt.Printf("Received: %s\n", msg)
+    // Atualiza a taxa de chegada de pacotes (simples média móvel)
+    packetRate = (packetRate + (1 / elapsed.Seconds())) / 2
 
-	if msg == "STOP" {
-		fmt.Println("Exiting UDP server!")
-		return
-	}
+    msg := strings.TrimSpace(string(packet))
+    fmt.Printf("Received: %s\n", msg)
 
-	// Simulating congestion
-	if congestion {
-		time.Sleep(CONGESTION_DELAY) // Use the dynamically adjusted congestion delay
-		congestion = false
-	}
+    if msg == "STOP" {
+        fmt.Println("Exiting UDP server!")
+        return
+    }
 
-	mutex.Lock()
-	defer mutex.Unlock()
+    // Simulating congestion
+    if congestion {
+        time.Sleep(CONGESTION_DELAY) // Use the dynamically adjusted congestion delay
+        congestion = false
+    }
 
-	seqNum, err := strconv.Atoi(strings.Split(msg, " ")[1])
-	if err != nil {
-		fmt.Println("Invalid message format")
-		return
-	}
+    mutex.Lock()
+    defer mutex.Unlock()
 
-	if seqNum == baseSeqNum+1 {
-		receiveQueue = append(receiveQueue, msg)
-		baseSeqNum++
-		expectedSeqNum := strconv.Itoa(baseSeqNum)
-		ack := []byte(expectedSeqNum)
-		_, err = connection.WriteToUDP(ack, addr)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("Sent ACK: %s\n", expectedSeqNum)
-	} else if seqNum > baseSeqNum {
-		fmt.Println("Message out of order, dropping:", msg)
-	}
+    seqNum, err := strconv.Atoi(strings.Split(msg, " ")[1])
+    if err != nil {
+        fmt.Println("Invalid message format")
+        return
+    }
 
-	// Simulate random congestion
-	if len(receiveQueue) > CONGESTION_THRESHOLD {
-		fmt.Println("Congestion detected! Slowing down...")
-		congestion = true
-	}
+    if seqNum == baseSeqNum+1 {
+        receiveQueue = append(receiveQueue, msg)
+        baseSeqNum++
+        expectedSeqNum := strconv.Itoa(baseSeqNum)
+        ack := []byte(expectedSeqNum)
+        _, err = connection.WriteToUDP(ack, addr)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+        fmt.Printf("Sent ACK: %s\n", expectedSeqNum)
+    } else if seqNum > baseSeqNum {
+        fmt.Println("Message out of order, dropping:", msg)
+    }
+
+    // Simulate random congestion
+    if len(receiveQueue) > CONGESTION_THRESHOLD {
+        fmt.Println("Congestion detected! Slowing down...")
+        congestion = true
+    }
+
+    // Print elapsed time in milliseconds
+    fmt.Printf("Elapsed time (ms): %d\n", elapsedMs)
 }
+
 
 func AdjustCongestionParameters() {
 	for {
