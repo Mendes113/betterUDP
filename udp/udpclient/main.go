@@ -31,7 +31,8 @@ func main() {
 
 	// Start measuring time for sending messages
 	sendStart := time.Now()
-	for i := 1; i <= 100; i++ {
+	
+	for i := 1; i <= 500000; i++ {
 		// Send a message to the server
 		_, err = conn.Write([]byte("Hello UDP Server\n"))
 		if err != nil {
@@ -39,6 +40,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	
 
 	sendElapsed := time.Since(sendStart) // Calculate time taken for sending
 

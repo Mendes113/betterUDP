@@ -30,9 +30,12 @@ func main() {
 
 	fmt.Printf("UDP server started and listening on %s\n", udpAddr.String())
 
-	// Read from UDP listener in endless loop
-	for {
-		var buf [512]byte
+	messageCounter := 0
+	totalTime := time.Duration(0)
+
+	// Read from UDP listener in loop until we receive 1000 messages
+	for messageCounter < 1000 {
+		var buf [2048]byte
 		// Start measuring time for receiving message
 		recvStart := time.Now()
 
@@ -46,8 +49,8 @@ func main() {
 
 		fmt.Print("> ", string(buf[0:]))
 
-		// Start measuring time for sending response
-		sendStart := time.Now()
+		// // Start measuring time for sending response
+		// sendStart := time.Now()
 
 		// Write back the message over UDP
 		_, err = conn.WriteToUDP([]byte("Hello UDP Client\n"), addr)
@@ -56,10 +59,18 @@ func main() {
 			continue
 		}
 
-		sendElapsed := time.Since(sendStart) // Calculate time taken for sending
+		// sendElapsed := time.Since(sendStart) // Calculate time taken for sending
 
-		// Print time spent for receiving and sending
-		fmt.Printf("Time spent receiving: %v\n", recvElapsed)
-		fmt.Printf("Time spent sending: %v\n", sendElapsed)
+		// // // Print time spent for receiving and sending
+		// fmt.Printf("Time spent receiving: %v\n", recvElapsed)
+		// fmt.Printf("Time spent sending: %v\n", sendElapsed)
+
+		// Update counters and time
+		messageCounter++
+		// log.Printf("counter %d ", messageCounter)
+		totalTime += recvElapsed
 	}
+
+	// Print total time spent receiving 1000 messages
+	fmt.Printf("Total time spent receiving 1000 messages: %v\n", totalTime)
 }

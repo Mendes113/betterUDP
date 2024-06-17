@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	"time"
+	// "time"
 
-	"betterudp/client"
-	"betterudp/server"
+	// "betterudp/client"
+	// "betterudp/server"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -22,31 +22,31 @@ const CSV_FILE_PATH = "/home/mendes/Documents/Github/betterUDP/execution_times.c
 var mutex sync.Mutex
 
 func main() {
-	// Iniciar temporizador para medir o tempo do servidor
-	serverStartTime := time.Now()
+	// // Iniciar temporizador para medir o tempo do servidor
+	// serverStartTime := time.Now()
 
-	// Iniciar servidor em uma goroutine
-	go server.Server(":1234")
+	// // Iniciar servidor em uma goroutine
+	// go server.Server(":1234")
 
-	// Aguardar um breve momento para garantir que o servidor esteja pronto
-	time.Sleep(100 * time.Millisecond)
+	// // Aguardar um breve momento para garantir que o servidor esteja pronto
+	// time.Sleep(100 * time.Millisecond)
 
-	// Medir tempo de execução do cliente
-	clientStartTime := time.Now()
+	// // Medir tempo de execução do cliente
+	// clientStartTime := time.Now()
 
-	// Executar o cliente
-	client.Client("127.0.0.1:1234")
+	// // Executar o cliente
+	// client.Client("127.0.0.1:1234")
 
-	// Registrar tempo total de execução do cliente
-	clientEndTime := time.Now()
-	clientTotalTime := clientEndTime.Sub(clientStartTime)
+	// // Registrar tempo total de execução do cliente
+	// clientEndTime := time.Now()
+	// clientTotalTime := clientEndTime.Sub(clientStartTime)
 
-	// Encerrar o servidor
-	serverEndTime := time.Now()
-	serverTotalTime := serverEndTime.Sub(serverStartTime)
+	// // Encerrar o servidor
+	// serverEndTime := time.Now()
+	// serverTotalTime := serverEndTime.Sub(serverStartTime)
 
-	fmt.Printf("Tempo total de execução do servidor: %v\n", serverTotalTime)
-	fmt.Printf("Tempo total de execução do cliente: %v\n", clientTotalTime)
+	// fmt.Printf("Tempo total de execução do servidor: %v\n", serverTotalTime)
+	// fmt.Printf("Tempo total de execução do cliente: %v\n", clientTotalTime)
 
 	// // Salvar tempos de execução no CSV
 	// err := LogElapsedTime(serverTotalTime.Milliseconds(), clientTotalTime.Milliseconds())
@@ -102,14 +102,16 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 
 	// Listas para armazenar os tempos de execução
 	var serverTimes []float64
-	var clientTimes []float64
+	// var clientTimes []float64
 	var serverTCPTimes []float64
-	var clientTCPTimes []float64
+	// var clientTCPTimes []float64
+	var serverUDPTimes []float64
+	// var clientUDPTimes []float64
 
 	// Iterar sobre os registros do CSV
 	for _, record := range records {
 		// Verificar se a linha possui exatamente 4 valores
-		if len(record) != 4 {
+		if len(record) != 6 {
 			continue // Ignorar esta linha se não tiver exatamente 4 valores
 		}
 
@@ -118,41 +120,52 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 		if err != nil {
 			return fmt.Errorf("erro ao converter tempo de execução do servidor: %w", err)
 		}
-		clientTime, err := strconv.ParseFloat(record[1], 64)
-		if err != nil {
-			return fmt.Errorf("erro ao converter tempo de execução do cliente: %w", err)
-		}
+		// clientTime, err := strconv.ParseFloat(record[1], 64)
+		// if err != nil {
+		// 	return fmt.Errorf("erro ao converter tempo de execução do cliente: %w", err)
+		// }
 		serverTCPTime, err := strconv.ParseFloat(record[2], 64)
 		if err != nil {
 			return fmt.Errorf("erro ao converter tempo de execução do servidor TCP: %w", err)
 		}
-		clientTCPTime, err := strconv.ParseFloat(record[3], 64)
+		// clientTCPTime, err := strconv.ParseFloat(record[3], 64)
+		// if err != nil {
+		// 	return fmt.Errorf("erro ao converter tempo de execução do cliente TCP: %w", err)
+		// }
+		// clientUDPTime, err := strconv.ParseFloat(record[4], 64)
+		// if err != nil {
+		// 	return fmt.Errorf("erro ao converter tempo de execução do cliente UDP: %w", err)
+		// }
+		serverUDPTime, err := strconv.ParseFloat(record[5], 64)
 		if err != nil {
-			return fmt.Errorf("erro ao converter tempo de execução do cliente TCP: %w", err)
+			return fmt.Errorf("erro ao converter tempo de execução do servidor UDP: %w", err)
 		}
+
 
 		// Adicionar os tempos à lista correspondente
 		serverTimes = append(serverTimes, serverTime)
-		clientTimes = append(clientTimes, clientTime)
+		// clientTimes = append(clientTimes, clientTime)
 		serverTCPTimes = append(serverTCPTimes, serverTCPTime)
-		clientTCPTimes = append(clientTCPTimes, clientTCPTime)
+		// clientTCPTimes = append(clientTCPTimes, clientTCPTime)
+		// clientUDPTimes = append(clientUDPTimes, clientUDPTime)
+		serverUDPTimes = append(serverUDPTimes, serverUDPTime)
 	}
 
-	// Verificar se há dados suficientes para gerar o gráfico
-	if len(serverTimes) == 0 || len(clientTimes) == 0 || len(serverTCPTimes) == 0 || len(clientTCPTimes) == 0 {
-		return fmt.Errorf("não há registros válidos com 4 valores no arquivo CSV")
-	}
 
 	// Calcular média dos tempos de execução
 	avgServerTime := calculateAverage(serverTimes)
-	avgClientTime := calculateAverage(clientTimes)
+	// avgClientTime := calculateAverage(clientTimes)
 	avgServerTCPTime := calculateAverage(serverTCPTimes)
-	avgClientTCPTime := calculateAverage(clientTCPTimes)
+	// avgClientTCPTime := calculateAverage(clientTCPTimes)
+	// avgClientUDPTime := calculateAverage(clientUDPTimes)
+	avgServerUDPTime := calculateAverage(serverUDPTimes)
 
 	fmt.Printf("Média de tempo de execução do servidor: %.2f ms\n", avgServerTime)
-	fmt.Printf("Média de tempo de execução do cliente: %.2f ms\n", avgClientTime)
+	// fmt.Printf("Média de tempo de execução do cliente: %.2f ms\n", avgClientTime)
 	fmt.Printf("Média de tempo de execução do servidor TCP: %.2f ms\n", avgServerTCPTime)
-	fmt.Printf("Média de tempo de execução do cliente TCP: %.2f ms\n", avgClientTCPTime)
+	// fmt.Printf("Média de tempo de execução do cliente TCP: %.2f ms\n", avgClientTCPTime)
+	fmt.Printf("Média de tempo de execução do servidor UDP: %.2f ms\n", avgServerUDPTime)
+	// fmt.Printf("Média de tempo de execução do cliente UDP: %.2f ms\n", avgClientUDPTime)
 
 	// Criar plot
 	p := plot.New()
@@ -164,27 +177,35 @@ func GenerateExecutionTimeChart(csvFilePath, outputImagePath string) error {
 
 	// Criar pontos para plotar
 	pointsServer := make(plotter.XYs, len(serverTimes))
-	pointsClient := make(plotter.XYs, len(clientTimes))
+	// pointsClient := make(plotter.XYs, len(clientTimes))
 	pointsServerTCP := make(plotter.XYs, len(serverTCPTimes))
-	pointsClientTCP := make(plotter.XYs, len(clientTCPTimes))
+	// pointsClientTCP := make(plotter.XYs, len(clientTCPTimes))
+	// pointsClientUDP := make(plotter.XYs, len(clientUDPTimes))
+	pointsServerUDP := make(plotter.XYs, len(serverUDPTimes))
 
 	for i := range pointsServer {
 		pointsServer[i].X = float64(i + 1)
 		pointsServer[i].Y = serverTimes[i]
-		pointsClient[i].X = float64(i + 1)
-		pointsClient[i].Y = clientTimes[i]
+		// pointsClient[i].X = float64(i + 1)
+		// pointsClient[i].Y = clientTimes[i]
 		pointsServerTCP[i].X = float64(i + 1)
 		pointsServerTCP[i].Y = serverTCPTimes[i]
-		pointsClientTCP[i].X = float64(i + 1)
-		pointsClientTCP[i].Y = clientTCPTimes[i]
+		// pointsClientTCP[i].X = float64(i + 1)
+		// pointsClientTCP[i].Y = clientTCPTimes[i]
+		// pointsClientUDP[i].X = float64(i + 1)
+		pointsServerUDP[i].Y = serverUDPTimes[i]
 	}
 
 	// Adicionar pontos ao plot
 	err = plotutil.AddLinePoints(p,
-		"Servidor", pointsServer,
-		"Cliente", pointsClient,
+		"Betterudp Server", pointsServer,
+		// "Betterudp Client", pointsClient,
 		"Servidor TCP", pointsServerTCP,
-		"Cliente TCP", pointsClientTCP)
+		// "Cliente TCP", pointsClientTCP,
+		// "Cliente UDP", pointsClientUDP,
+		"Servidor UDP", pointsServerUDP,
+	
+	)
 	if err != nil {
 		return fmt.Errorf("erro ao adicionar pontos ao plot: %w", err)
 	}
