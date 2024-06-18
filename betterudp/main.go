@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 	"sync"
-	// "time"
+	"time"
 
-	// "betterudp/client"
-	// "betterudp/server"
+	"betterudp/client"
+	"betterudp/server"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -22,42 +22,42 @@ const CSV_FILE_PATH = "/home/mendes/Documents/Github/betterUDP/execution_times.c
 var mutex sync.Mutex
 
 func main() {
-	// // Iniciar temporizador para medir o tempo do servidor
-	// serverStartTime := time.Now()
+	// Iniciar temporizador para medir o tempo do servidor
+	serverStartTime := time.Now()
 
-	// // Iniciar servidor em uma goroutine
-	// go server.Server(":1234")
+	// Iniciar servidor em uma goroutine
+	go server.Server(":1234")
 
-	// // Aguardar um breve momento para garantir que o servidor esteja pronto
-	// time.Sleep(100 * time.Millisecond)
+	// Aguardar um breve momento para garantir que o servidor esteja pronto
+	time.Sleep(100 * time.Millisecond)
 
-	// // Medir tempo de execução do cliente
-	// clientStartTime := time.Now()
+	// Medir tempo de execução do cliente
+	clientStartTime := time.Now()
 
-	// // Executar o cliente
-	// client.Client("127.0.0.1:1234")
+	// Executar o cliente
+	client.Client("127.0.0.1:1234")
 
-	// // Registrar tempo total de execução do cliente
-	// clientEndTime := time.Now()
-	// clientTotalTime := clientEndTime.Sub(clientStartTime)
+	// Registrar tempo total de execução do cliente
+	clientEndTime := time.Now()
+	clientTotalTime := clientEndTime.Sub(clientStartTime)
 
-	// // Encerrar o servidor
-	// serverEndTime := time.Now()
-	// serverTotalTime := serverEndTime.Sub(serverStartTime)
+	// Encerrar o servidor
+	serverEndTime := time.Now()
+	serverTotalTime := serverEndTime.Sub(serverStartTime)
 
-	// fmt.Printf("Tempo total de execução do servidor: %v\n", serverTotalTime)
-	// fmt.Printf("Tempo total de execução do cliente: %v\n", clientTotalTime)
+	fmt.Printf("Tempo total de execução do servidor: %v\n", serverTotalTime)
+	fmt.Printf("Tempo total de execução do cliente: %v\n", clientTotalTime)
 
-	// // Salvar tempos de execução no CSV
-	// err := LogElapsedTime(serverTotalTime.Milliseconds(), clientTotalTime.Milliseconds())
-	// if err != nil {
-	// 	fmt.Println("Erro ao salvar tempos de execução no CSV:", err)
-	// }
-
-	err := GenerateExecutionTimeChart("/home/mendes/Documents/Github/betterUDP/execution_times.csv", "output.png")
+	// Salvar tempos de execução no CSV
+	err := LogElapsedTime(serverTotalTime.Milliseconds(), clientTotalTime.Milliseconds())
 	if err != nil {
-		fmt.Println("Erro:", err)
+		fmt.Println("Erro ao salvar tempos de execução no CSV:", err)
 	}
+
+	// err := GenerateExecutionTimeChart("/home/mendes/Documents/Github/betterUDP/execution_times.csv", "output.png")
+	// if err != nil {
+	// 	fmt.Println("Erro:", err)
+	// }
 }
 
 func LogElapsedTime(serverTimeMs, clientTimeMs int64) error {

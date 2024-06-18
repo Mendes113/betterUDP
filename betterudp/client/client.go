@@ -1,5 +1,4 @@
 package client
-
 import (
 	"fmt"
 	"net"
@@ -7,13 +6,11 @@ import (
 	"time"
     "github.com/fatih/color"
 )
-
 const (
-	TOTAL_MESSAGES = 1000
-	MAX_RETRIES    = 1000
+	TOTAL_MESSAGES = 100000
+	MAX_RETRIES    = 100000
 	TIMEOUT        = 1 * time.Second
 )
-
 func sendMessage(c *net.UDPConn, message string, seqNum int) error {
     retries := 0
     for {
@@ -23,7 +20,6 @@ func sendMessage(c *net.UDPConn, message string, seqNum int) error {
         if err != nil {
             return err
         }
-
         // Calcula tempo decorrido para enviar a mensagem
         sendElapsed := time.Since(now)
 		fmt.Printf("Sent message '%s', took %v\n", message, sendElapsed)
@@ -61,11 +57,8 @@ func sendMessage(c *net.UDPConn, message string, seqNum int) error {
             }
         }
     }
-
     return nil
 }
-
-
 func Client(CONNECT string) {
     // Resolve o endereço do servidor
 	s, err := net.ResolveUDPAddr("udp4", CONNECT)
@@ -80,7 +73,6 @@ func Client(CONNECT string) {
 		return
 	}
 	defer c.Close()
-
 	start := time.Now() // Marca o tempo de início do envio das mensagens
     // Envia as mensagens
 	for i := 0; i < TOTAL_MESSAGES; i++ {
@@ -91,10 +83,7 @@ func Client(CONNECT string) {
 			fmt.Printf("Error sending message: %v\n", err)
 			return
 		}
-
-		// time.Sleep(time.Millisecond * 100)
 	}
-
 	elapsed := time.Since(start) // Calcula o tempo total decorrido
 	fmt.Printf("Sent %d messages in %v\n", TOTAL_MESSAGES, elapsed)
 }
