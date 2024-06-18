@@ -98,8 +98,11 @@ func HandlePacket(connection *net.UDPConn, packet []byte, addr *net.UDPAddr) {
 		// Adiciona o pacote à fila de recebimento
 		receiveQueue = append(receiveQueue, msg)
 		baseSeqNum++
+		// Converte o próximo número de sequência esperado para string
 		expectedSeqNum := strconv.Itoa(baseSeqNum)
+		// Converte a string do número de sequência esperado para um slice de bytes
 		ack := []byte(expectedSeqNum)
+		// Envia o ACK para o endereço de origem
 		_, err = connection.WriteToUDP(ack, addr)
 		if err != nil {
 			fmt.Println(err)
